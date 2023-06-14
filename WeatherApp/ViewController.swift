@@ -6,12 +6,16 @@
 //
 
 import UIKit
+import CoreLocation
 
 class ViewController: UIViewController {
     
     @IBOutlet var tableView: UITableView!
     
     let models = [Weather]()
+    
+    let locationManager = CLLocationManager()
+    var currentLocation: CLLocation?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -22,12 +26,50 @@ class ViewController: UIViewController {
         
         tableView.delegate = self
         tableView.dataSource = self
+        
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        setupLocation()
+
+    }
+    
+    func setupLocation() {
+        locationManager.delegate = self
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.startUpdatingLocation()
+    }
+    
+    func requestWeatherForLocation() {
+        guard let currentLocation = currentLocation else {
+            return
+        }
+        
+        let longitude = currentLocation.coordinate.longitude
+        let latitude = currentLocation.coordinate.latitude
+         
+        let apiKey = ""
+        
+        let url = "http://api.weatherapi.com/v1/current.json?key=\(apiKey)&q=\(longitude),\(latitude)"
+        
+        URLSession.shared.dataTask(with: URL(string: url)!, completionHandler: {data, response, error in
+          
+            guard let data = data , error == nil else {
+                print("Request error : ", error)
+                return
+            }
+            
+        })
+        
+        print("\(longitude) , \(latitude)")
     }
  
 
 }
 
-struct Weather {
+struct Weather: Codable {
     
 }
 
@@ -70,5 +112,15 @@ extension ViewController: UITableViewDataSource {
 //        return cell
         
         return UITableViewCell()
+    }
+}
+
+extension ViewController: CLLocationManagerDelegate {
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        if !locations.isEmpty, currentLocation == nil {
+            currentLocation = locations.first
+            locationManager.stopUpdatingLocation()
+            requestWeatherForLocation()
+        }
     }
 }
